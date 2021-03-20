@@ -19,11 +19,12 @@ except ImportError:
 #------------------------
 # configure solver inputs
 #------------------------
+
 x0 = 0
 x1 = 1
-p = 1
-h = .05
-gN = int(np.ceil(((p+1)/2)))
+p = 1 #Polynomial Degree
+h = .05 #Mesh sizing parameter
+gN = int(np.ceil(((p+1)/2))) #Gauss order
 
 fun = lambda x: (2**2)*np.cos(np.pi*2*x/1.0) + 5.0*(1-2**2)*np.sin(2*np.pi*2*x/1.0)
 
