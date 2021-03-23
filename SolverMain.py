@@ -22,11 +22,17 @@ except ImportError:
 
 x0 = 0
 x1 = 1
+u_a = 0.0
+u_b = 1.0
 p = 1 #Polynomial Degree
-h = .05 #Mesh sizing parameter
+h = 0.005 #Mesh sizing parameter
+k = 32.0
+alpha = 5.0
+L = 1.0
 gN = int(np.ceil(((p+1)/2))) #Gauss order
 
-fun = lambda x: (2**2)*np.cos(np.pi*2*x/1.0) + 5.0*(1-2**2)*np.sin(2*np.pi*2*x/1.0)
+#fun = lambda x: -1.0*((k**2)*np.cos(np.pi*k*x/L) + alpha*(1-k**2)*np.sin(2*np.pi*k*x/L))
+fun = lambda x: -1.0*(k**2*np.cos((np.pi*k*x)/(L)) + alpha*(1-k**2)*np.sin((2*np.pi*k*x)/(L)))
 
 [numElements, numNodes, nodes] = generateMeshNodes([x0, x1], p, h, a_ReturnNumElements=True, a_ReturnNumNodes=False)
 
@@ -36,27 +42,43 @@ K = assembleGlobalStiffness(nodes, E, gN, p)
 
 F = assembleGlobalLoading(fun, nodes, E, gN, p)
 
-dirNodes = np.array([np.where(nodes == x0)[0][0], np.where(nodes == x1)[0][0]])
+dirNodes = np.array([0, numNodes-1])
 
-dirVals = np.array([0, 1])
+dirVals = np.array([u_a, u_b])
 
-for i in range(len(dirNodes)):
-	[Kg, Fg] = applyDirichlet(K, F, dirNodes[i], dirVals[i])
 
+[Kg, Fg] = applyDirichlet(K, F, dirNodes, dirVals)
+
+#--------------------------------------------------------
+# use the finite element functions to obtain the solution
+#--------------------------------------------------------
 
 [uSol, status] = cg(Kg, Fg)
 
-plt.figure()
-plt.plot(nodes, uSol)
-plt.xlabel('Nodal Coordinates')
-plt.ylabel('Solution Values')
-plt.savefig('sol1.png')
+
+
 #-----------------------------------------
 # define the functionS for f
 # and the exact solution you have computed
 #------------------------------------------
 
+u_exact = ((L**2/np.pi**2)*np.cos(np.pi*k/L) + ((alpha*(1-k**2)*L**2)/(4*np.pi**2*k**2))*np.sin(2*np.pi*k/L) - (L**2/np.pi**2) + 1)*nodes \
+		-(L**2/np.pi**2)*np.cos(np.pi*k*nodes/L) - ((alpha*(1-k**2)*L**2)/(4*np.pi**2*k**2))*np.sin(2*np.pi*k*nodes/L) + (L**2/np.pi**2)
 
-#--------------------------------------------------------
-# use the finite element functions to obtain the solution
-#--------------------------------------------------------
+
+#Plotting
+plt.figure()
+plt.plot(nodes, u_exact, 'b', label='Exact Solution')
+plt.plot(nodes, uSol, 'r--', label='FEM Solution')
+plt.xlabel('Nodal Coordinates')
+plt.ylabel('Solution Values')
+plt.title('Solution for k=32.0, h=0.005')
+plt.legend()
+plt.grid()
+#plt.savefig('sol20.png')
+
+
+#Error calculation
+error = np.sum(np.absolute(uSol - u_exact))
+
+print('Error=', error)

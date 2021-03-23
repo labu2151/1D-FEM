@@ -49,21 +49,33 @@ def computeElementStiffness(a_ElementNodes, a_GaussOrder, a_Degree):
     """
 
     ##
+    #Get the gauss points corresponding to the gauss order
     eta_gauss = getGaussQuadraturePoints(a_GaussOrder)
+
+    #Get the gauss weights corresponding to the gauss order
     w = getGaussQuadratureWeights(a_GaussOrder)
 
+    #Get the reference nodes
     refNodes = referenceElementNodes(a_Degree)
 
+    #Get the local node indices from the refernce nodes
     localNodes = range(len(refNodes))
     
+    #Initialize the element stiffness matrix
     K = np.zeros((len(localNodes), len(localNodes)))
-    for i in range(len(localNodes)):
+    for i in range(len(localNodes)): #for each local node
         for j in range(len(localNodes)):
-            for k in range(a_GaussOrder):
+            for k in range(a_GaussOrder): #for each gauss point 
+                #Calculate the element mapping gradient
                 dXdEta = lineElementMappingGradient(a_ElementNodes, a_Degree, eta_gauss[k])
+
+                #Calculate the shape derivative for each i local node
                 phiDiffi = lineElementShapeDerivatives(eta_gauss[k], a_Degree, localNodes[i])
+
+                #Calculate the shape derivative for each j local node
                 phiDiffj = lineElementShapeDerivatives(eta_gauss[k], a_Degree, localNodes[j])
 
+                #Put everything together to calculate K
                 K[i,j] = K[i,j] + w[k]*phiDiffi*phiDiffj*(1/dXdEta)
 
     return K  
@@ -91,22 +103,34 @@ def computeElementLoading(a_Function, a_ElementNodes, a_GaussOrder, a_Degree):
     .. _Google Python Style Guide:
     http://google.github.io/styleguide/pyguide.html
     """
+
+    ##
+    #Get the gauss points corresponding to the gauss order
     eta_gauss = getGaussQuadraturePoints(a_GaussOrder)
+
+    #Get the gauss weights corresponding to the gauss order
     w = getGaussQuadratureWeights(a_GaussOrder)
 
+    #Get the reference nodes
     refNodes = referenceElementNodes(a_Degree)
 
+    #Get the local node indices from the refernce nodes
     localNodes = range(len(refNodes))
-  
+    
+    #Initialize the element stiffness matrix
     f = np.zeros(len(localNodes))
-
     for i in range(len(localNodes)):
         for j in range(a_GaussOrder):
+            #Calculate the element mapping gradient
             dXdEta = lineElementMappingGradient(a_ElementNodes, a_Degree, eta_gauss[j])
+
+            #Calculate the element mapping 
             isomap = lineElementIsoparametricMap(a_ElementNodes, a_Degree, eta_gauss[j])
+
+            #Calculate the shape derivative for each local node
             phi = lineElementShapeFunction(eta_gauss[j], a_Degree, localNodes[i])
 
-          
+            #Put everything together to calculate f
             f[i] = f[i] + w[j]*phi*a_Function(isomap)*(dXdEta)
    
     return f
@@ -211,16 +235,20 @@ def applyDirichlet(a_Kg, a_Fg, a_DirNodes, a_DirVals):
     .. _Google Python Style Guide:
     http://google.github.io/styleguide/pyguide.html
     """
-    i = a_DirNodes
-    u0 = a_DirVals
-    a_Kg[i,:] = 0.0
 
-    a_Fg = a_Fg - a_Kg[:,i]*u0
+    for i in range(len(a_DirNodes)):
 
-    a_Kg[:,i] = 0.0
+        dir_nodes = a_DirNodes[i]
+        dir_vals = a_DirVals[i]
 
-    a_Kg[i,i] = 1.0
+        a_Kg[dir_nodes,:] = 0.0
 
-    a_Fg[i] = u0
+        a_Fg = a_Fg - a_Kg[:,dir_nodes]*dir_vals
+
+        a_Kg[:,dir_nodes] = 0.0
+
+        a_Kg[dir_nodes,dir_nodes] = 1.0
+
+        a_Fg[dir_nodes] = dir_vals
 
     return a_Kg, a_Fg

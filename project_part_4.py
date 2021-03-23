@@ -13,38 +13,37 @@ alpha = 5.0
 
 domain = [a, b]
 degree = 1
-size = .5
+size = .1
 
-
+#Creating mesh node array
 [numElements, numNodes, nodes] = generateMeshNodes(domain, degree, size)
+
+#Creating Element Connectivity
 connectivity = generateMeshConnectivity(numElements, degree)
-print('nodes=', nodes)
-print('index=', range(len(nodes)-1))
+
+#Calculate the gauss quadrature order
 Nq = int(np.ceil(((degree+1)/2)))
-print('Nq=', Nq)
+
+#Define the function for the loading
 def poissonF(x):
 
-	#f = k**2 * cos((np.pi*k*x)/L) + alpha*(1-k**2)*sin((2*np.pi*k*x)/L)
 	fx = x
 
 	return fx
 
-
+#Compute global stiffness matrix
 K = assembleGlobalStiffness(nodes, connectivity, Nq, degree)
 print('K=', K)
 
+#Compute global loading vector
 F = assembleGlobalLoading(poissonF, nodes, connectivity, Nq, degree)
 print('F=', F)
 
-DirNodes = np.array([np.where(nodes == a)[0][0], np.where(nodes == b)[0][0]])
+#Define the Dirichlet nodes
+DirNodes = np.array([0, numNodes-1])
 
+#Define the Dirichlet values
 DirVals = np.array([u_a, u_b])
 
-print(DirNodes)
-print(DirVals)
-
-for i in range(len(DirNodes)):
-	[Kg, Fg] = applyDirichlet(K, F, DirNodes[i], DirVals[i])
-
-	print('Kg=', Kg)
-	print('Fg=', Fg)
+#Apply the Dirichlet boundaries 
+[Kg, Fg] = applyDirichlet(K, F, DirNodes, DirVals)

@@ -40,9 +40,13 @@ def generateMeshNodes(a_Domain, a_Degree, a_Size, a_ReturnNumElements=True, a_Re
     a = a_Domain[0]
     b = a_Domain[1]
 
+    #Create the nodes array 
     nodes = np.linspace(a, b, int(b/a_Size)*a_Degree + 1)
     
+    #Count the number of nodes in nodes array
     numNodes = len(nodes)
+
+    #Calculate number of elements based on the number of nodes and polynomial degree. 
     numElements = int((numNodes-1)/a_Degree)
 
     return [numElements, numNodes, nodes]
@@ -65,7 +69,7 @@ def generateMeshConnectivity(a_NumElements, a_Degree):
     """
 
     ##
-    #create an array for the node id (dependent on the number of elements and the order)
+    #create an array for the node id (dependent on the number of elements and the polynomial order)
     node_id = np.linspace(0, a_NumElements*a_Degree, a_NumElements*a_Degree + 1)
     
     #Initialize the connectivity matrix
@@ -75,12 +79,11 @@ def generateMeshConnectivity(a_NumElements, a_Degree):
     for i in range(a_NumElements):
         connectivity[i,:] = node_id[a_Degree*i:a_Degree*i+(a_Degree+1)]
     
+    #Make sure the connectivity matrix is an array o integers
     connectivity = connectivity.astype(int)
     
     return connectivity
     ##
-
-
 
 def referenceElementNodes(a_Degree):
     """Generate nodal coordinates for the 1-dimensional reference element in [-1.0,1.0]
@@ -96,6 +99,7 @@ def referenceElementNodes(a_Degree):
     """
 
     ##
+    #Create the reference nodes array, always between -1 and 1 with array depending on polynomial degree
     refNodes = np.linspace(-1,1, a_Degree+1)
     
     return refNodes
@@ -119,14 +123,19 @@ def lineElementShapeFunction(a_Eta, a_Degree, a_LocalNode):
     """
 
     ##
+    #Get the reference nodes
     refNode = referenceElementNodes(a_Degree)
-    phi = np.ones((a_Degree+1, 1))
-    for i in range(a_Degree+1):
-        for k in range(a_Degree+1):
+
+    #Initialize phi as ones for multiplication
+    phi = np.ones(a_Degree+1)
+    for i in range(a_Degree+1): #for each node
+        for k in range(a_Degree+1): 
             if i != k:
-                phi[i,:] = phi[i,:]*(a_Eta - refNode[k])/(refNode[i] - refNode[k])
-                
-    basisVal = float(phi[a_LocalNode, :])
+                #Use Lagrange Polynomials to calculate phi
+                phi[i] = phi[i]*(a_Eta - refNode[k])/(refNode[i] - refNode[k])
+    
+    #Make sure the basis value is a float at the specified local node.             
+    basisVal = float(phi[a_LocalNode])
   
     return basisVal
     ##
@@ -148,26 +157,31 @@ def lineElementShapeDerivatives(a_Eta, a_Degree, a_LocalNode):
     """
 
     ##
+    #Get the reference nodes
     refNode = referenceElementNodes(a_Degree)
     
+    #Initialize multiplication
     prod = 1
     
-    phiDiff = np.zeros((a_Degree+1, 1))
+    #Initialize derivative array
+    phiDiff = np.zeros(a_Degree+1)
     
-    for i in range(a_Degree+1):
+    for i in range(a_Degree+1): #for each node
         for k in range(a_Degree+1):
             if i != k:
                 diff1 = 1/(refNode[i] - refNode[k])      
                 for j in range(a_Degree+1):
                     if j != k and j!=i:
+                        #Use derivative equation from Langrange polynomial equation
                         prod = prod*((a_Eta - refNode[j])/(refNode[i] - refNode[j]))
                        
-                phiDiff[i,:] = phiDiff[i,:] + (diff1*prod)
+                phiDiff[i] = phiDiff[i] + (diff1*prod)
                 
+                #Re-initialize product to start calculation again
                 prod = 1
                 
-    
-    shapeDiffVal = float(phiDiff[a_LocalNode, :])
+    #Make sure the value is a float at the specified local node.
+    shapeDiffVal = float(phiDiff[a_LocalNode])
     
     return shapeDiffVal
     ##
@@ -189,18 +203,22 @@ def lineElementIsoparametricMap(a_ElementNodeCoordinates, a_Degree, a_Eta):
     """
 
     ##
+    #Get the reference nodes
     refNodes = referenceElementNodes(a_Degree)
 
+    #Get the local node indices from the refernce nodes
     localNodes = range(len(refNodes))
+
+    #Initialize the mapping value for summation
     isoMap = 0
-    for i in range(len(localNodes)):
+    for i in range(len(localNodes)): #For each local node
         phi = lineElementShapeFunction(a_Eta, a_Degree, localNodes[i])
 
         isoMap = isoMap + phi*a_ElementNodeCoordinates[i]
     
-    
+    #Make sure returned value is a float. 
     return float(isoMap)
-
+    ##
 
 def lineElementMappingGradient(a_ElementNodeCoordinates, a_Degree, a_Eta):
     """Evaluate the Jacobian of the isoparametric mapping of global-local coordinates
@@ -218,16 +236,20 @@ def lineElementMappingGradient(a_ElementNodeCoordinates, a_Degree, a_Eta):
     """
 
     ##
+    #Get the reference nodes
     refNodes = referenceElementNodes(a_Degree)
 
+    #Get the local node indices from the refernce nodes
     localNodes = range(len(refNodes))
+
+    #Initialize the mapping gradient value for summation
     dXdEta = 0
     for i in range(len(localNodes)):
         phiDiff = lineElementShapeDerivatives(a_Eta, a_Degree, localNodes[i])
 
         dXdEta = dXdEta + phiDiff*a_ElementNodeCoordinates[i]
     
-    
+    #Make sure returned value is a float.
     return float(dXdEta)
     ##
 
@@ -262,7 +284,7 @@ def plotMesh(a_Nodes, a_Connectivity, a_XLabel=None, a_YLabel=None, a_SaveFigure
         plt.plot(edgeNodes, np.zeros_like(edgeNodes), 'rs-')
         plt.plot(inNodes, np.zeros_like(inNodes), 'bv')
 
-    plt.show()
+    plt.savefig(a_SaveFigure)
 
 
 def plotSolutions(a_Nodes, a_Connectivity, a_Solution, a_YLabel=None, a_XLabel=None, a_SaveFigure=None):

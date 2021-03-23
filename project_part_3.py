@@ -12,29 +12,32 @@ u_b = 1.0
 alpha = 5.0
 
 domain = [a, b]
-degree = 1
+degree = 2
 size = .1
 elementNumber = 0 #Input element number, starting from 0. 
 
+#Creating mesh node array
 [numElements, numNodes, nodes] = generateMeshNodes(domain, degree, size)
+
+#Creating Element Connectivity
 connectivity = generateMeshConnectivity(numElements, degree)
-print('Number of Elements=', numElements)
+
+#Calculate the gauss quadrature order
 Nq = int(np.ceil(((degree+1)/2)))
 
-
+#Call the element stiffness computation 
 k = computeElementStiffness(nodes[connectivity[elementNumber]], Nq, degree)
 
 print('kij=', k)
 
+#Define the function for the loading 
 def poissonF(x):
 
-	#f = k**2 * cos((np.pi*k*x)/L) + alpha*(1-k**2)*sin((2*np.pi*k*x)/L)
 	fx = x
 
 	return fx
 
-
-
+#Call the element loading computation
 f = computeElementLoading(poissonF, nodes[connectivity[elementNumber]], Nq, degree)
 
 print('fi=', f)
